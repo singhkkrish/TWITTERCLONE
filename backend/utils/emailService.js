@@ -6,8 +6,8 @@ if (!nodemailer || typeof nodemailer.createTransport !== 'function') {
 }
 
 const transporter = nodemailer.createTransport({
-  // host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  host: process.env.EMAIL_HOST || "smtp-relay.brevo.com",
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  // host: process.env.EMAIL_HOST || "smtp-relay.brevo.com",
   port: parseInt(process.env.EMAIL_PORT) || 587,
   secure: false, 
   auth: {
