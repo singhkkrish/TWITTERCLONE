@@ -1,11 +1,18 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const { Resend } = require('resend');
+const formData = require('form-data');
+const Mailgun = require('mailgun.js');
 const loginTrackingService = require('../services/loginTrackingService');
 
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Mailgun
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+  username: 'api',
+  key: process.env.MAILGUN_API_KEY
+});
+
+const DOMAIN = process.env.MAILGUN_DOMAIN;
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -17,8 +24,8 @@ const generateOTP = () => {
 
 const sendBrowserOTPEmail = async (email, name, otp, browserName, ipAddress) => {
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'Twitter Clone <onboarding@resend.dev>',
+    const result = await mg.messages.create(DOMAIN, {
+      from: `Twitter Clone <mailgun@${DOMAIN}>`,
       to: [email],
       subject: 'Login Verification - Chrome Browser',
       html: `
@@ -43,12 +50,8 @@ const sendBrowserOTPEmail = async (email, name, otp, browserName, ipAddress) => 
       `
     });
 
-    if (error) {
-      console.error('❌ Resend error:', error);
-      throw error;
-    }
-
     console.log('✅ Browser OTP email sent successfully');
+    console.log('📧 Mailgun Message ID:', result.id);
   } catch (error) {
     console.error('❌ Error sending browser OTP email:', error);
     throw error;

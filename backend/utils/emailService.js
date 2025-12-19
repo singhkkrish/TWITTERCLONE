@@ -1,10 +1,16 @@
-// Resend-based Email Service (Works on Render!)
-// Even simpler than SendGrid - instant activation
+// Mailgun Email Service - Complete Implementation
+// Works on Render with sandbox domain
 
-const { Resend } = require('resend');
+const formData = require('form-data');
+const Mailgun = require('mailgun.js');
 
-// Initialize Resend with API key
-const resend = new Resend(process.env.RESEND_API_KEY);
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+  username: 'api',
+  key: process.env.MAILGUN_API_KEY
+});
+
+const DOMAIN = process.env.MAILGUN_DOMAIN;
 
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -12,8 +18,8 @@ const generateOTP = () => {
 
 const sendOTPEmail = async (email, otp, userName) => {
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'Twitter Clone <onboarding@resend.dev>', // Default Resend sender (works immediately)
+    const result = await mg.messages.create(DOMAIN, {
+      from: `Twitter Clone <mailgun@${DOMAIN}>`,
       to: [email],
       subject: 'Audio Tweet Upload - OTP Verification',
       html: `
@@ -57,20 +63,15 @@ const sendOTPEmail = async (email, otp, userName) => {
           </div>
         </body>
         </html>
-      `,
+      `
     });
 
-    if (error) {
-      console.error('❌ Resend error:', error);
-      throw new Error('Failed to send OTP email');
-    }
-
     console.log('✅ OTP email sent successfully to:', email);
-    console.log('📧 Email ID:', data.id);
+    console.log('📧 Mailgun Message ID:', result.id);
     return true;
   } catch (error) {
     console.error('❌ Error sending OTP email:', error);
-    throw new Error('Failed to send OTP email');
+    throw new Error('Failed to send OTP email: ' + (error.message || error));
   }
 };
 
@@ -78,8 +79,8 @@ const sendPasswordResetEmail = async (email, userName, generatedPassword, resetT
   const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
   
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'Twitter Clone <onboarding@resend.dev>',
+    const result = await mg.messages.create(DOMAIN, {
+      from: `Twitter Clone <mailgun@${DOMAIN}>`,
       to: [email],
       subject: 'Password Reset Request - Twitter Clone',
       html: `
@@ -136,20 +137,15 @@ const sendPasswordResetEmail = async (email, userName, generatedPassword, resetT
           </div>
         </body>
         </html>
-      `,
+      `
     });
 
-    if (error) {
-      console.error('❌ Resend error:', error);
-      throw new Error('Failed to send password reset email');
-    }
-
     console.log('✅ Password reset email sent successfully to:', email);
-    console.log('📧 Email ID:', data.id);
+    console.log('📧 Mailgun Message ID:', result.id);
     return true;
   } catch (error) {
     console.error('❌ Error sending password reset email:', error);
-    throw new Error('Failed to send password reset email');
+    throw new Error('Failed to send password reset email: ' + (error.message || error));
   }
 };
 
@@ -158,8 +154,8 @@ const sendSubscriptionInvoice = async (email, userName, subscriptionData, paymen
   const { orderId, razorpayPaymentId, paymentDate } = paymentData;
   
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'Twitter Clone <onboarding@resend.dev>',
+    const result = await mg.messages.create(DOMAIN, {
+      from: `Twitter Clone <mailgun@${DOMAIN}>`,
       to: [email],
       subject: `Payment Successful - ${planName} Subscription`,
       html: `
@@ -263,20 +259,15 @@ const sendSubscriptionInvoice = async (email, userName, subscriptionData, paymen
           </div>
         </body>
         </html>
-      `,
+      `
     });
 
-    if (error) {
-      console.error('❌ Resend error:', error);
-      throw new Error('Failed to send subscription invoice');
-    }
-
     console.log('✅ Subscription invoice sent successfully to:', email);
-    console.log('📧 Email ID:', data.id);
+    console.log('📧 Mailgun Message ID:', result.id);
     return true;
   } catch (error) {
     console.error('❌ Error sending subscription invoice:', error);
-    throw new Error('Failed to send subscription invoice');
+    throw new Error('Failed to send subscription invoice: ' + (error.message || error));
   }
 };
 

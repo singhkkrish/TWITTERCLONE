@@ -1,5 +1,6 @@
 const User = require('../models/User');
-const { Resend } = require('resend');
+const formData = require('form-data');
+const Mailgun = require('mailgun.js');
 const twilio = require('twilio');
 
 const twilioClient = twilio(
@@ -7,8 +8,14 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Mailgun
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+  username: 'api',
+  key: process.env.MAILGUN_API_KEY
+});
+
+const DOMAIN = process.env.MAILGUN_DOMAIN;
 
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -25,8 +32,8 @@ const sendLanguageOTPEmail = async (email, name, otp, language) => {
   };
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'Twitter Clone <onboarding@resend.dev>',
+    const result = await mg.messages.create(DOMAIN, {
+      from: `Twitter Clone <mailgun@${DOMAIN}>`,
       to: [email],
       subject: 'Language Change Verification - OTP',
       html: `
@@ -46,12 +53,8 @@ const sendLanguageOTPEmail = async (email, name, otp, language) => {
       `
     });
 
-    if (error) {
-      console.error('❌ Resend error:', error);
-      throw error;
-    }
-
     console.log('✅ Language OTP email sent successfully');
+    console.log('📧 Mailgun Message ID:', result.id);
   } catch (error) {
     console.error('❌ Error sending language OTP email:', error);
     throw error;
