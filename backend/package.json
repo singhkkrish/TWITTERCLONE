@@ -26,6 +26,7 @@
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.11",
     "razorpay": "^2.9.6",
+    "resend": "^6.6.0",
     "twilio": "^5.10.7",
     "ua-parser-js": "^2.0.7"
   },

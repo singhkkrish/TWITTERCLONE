@@ -1,60 +1,53 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const loginTrackingService = require('../services/loginTrackingService');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-});
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
-// Generate 6-digit OTP
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Send browser OTP email
 const sendBrowserOTPEmail = async (email, name, otp, browserName, ipAddress) => {
-  const mailOptions = {
-    from: process.env.EMAIL_FROM,
-    to: email,
-    subject: 'Login Verification - Chrome Browser',
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #1DA1F2;">🔐 Login Verification Required</h2>
-        <p>Hello <strong>${name}</strong>,</p>
-        <p>A login attempt was detected from <strong>${browserName}</strong>.</p>
-        <p><strong>IP Address:</strong> ${ipAddress}</p>
-        <p>Please use the following OTP to complete your login:</p>
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 30px 0; border-radius: 12px; color: white;">
-          ${otp}
-        </div>
-        <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #1DA1F2; margin: 20px 0;">
-          <p style="margin: 0; color: #666;">⏱️ This OTP will expire in <strong>10 minutes</strong></p>
-        </div>
-        <p style="color: #666; font-size: 14px;">If you didn't attempt to login, please secure your account immediately.</p>
-        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
-        <p style="color: #999; font-size: 12px; text-align: center;">
-          Best regards,<br><strong>Twitter Clone Team</strong>
-        </p>
-      </div>
-    `
-  };
-  
   try {
-    await transporter.sendMail(mailOptions);
+    const { data, error } = await resend.emails.send({
+      from: 'Twitter Clone <onboarding@resend.dev>',
+      to: [email],
+      subject: 'Login Verification - Chrome Browser',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #1DA1F2;">🔐 Login Verification Required</h2>
+          <p>Hello <strong>${name}</strong>,</p>
+          <p>A login attempt was detected from <strong>${browserName}</strong>.</p>
+          <p><strong>IP Address:</strong> ${ipAddress}</p>
+          <p>Please use the following OTP to complete your login:</p>
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 30px 0; border-radius: 12px; color: white;">
+            ${otp}
+          </div>
+          <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #1DA1F2; margin: 20px 0;">
+            <p style="margin: 0; color: #666;">⏱️ This OTP will expire in <strong>10 minutes</strong></p>
+          </div>
+          <p style="color: #666; font-size: 14px;">If you didn't attempt to login, please secure your account immediately.</p>
+          <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+          <p style="color: #999; font-size: 12px; text-align: center;">
+            Best regards,<br><strong>Twitter Clone Team</strong>
+          </p>
+        </div>
+      `
+    });
+
+    if (error) {
+      console.error('❌ Resend error:', error);
+      throw error;
+    }
+
     console.log('✅ Browser OTP email sent successfully');
   } catch (error) {
     console.error('❌ Error sending browser OTP email:', error);
@@ -62,7 +55,6 @@ const sendBrowserOTPEmail = async (email, name, otp, browserName, ipAddress) => 
   }
 };
 
-// REGISTER
 exports.register = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -114,7 +106,6 @@ exports.register = async (req, res) => {
   }
 };
 
-// LOGIN 
 exports.login = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -145,35 +136,18 @@ exports.login = async (req, res) => {
     const trackingData = loginTrackingService.createLoginTrackingData(req);
     const userAgent = req.headers['user-agent'] || '';
     
-    console.log('📱 Device Info:', {
-      browser: trackingData.browser.name,
-      device: trackingData.device,
-      ip: trackingData.ipAddress,
-      location: trackingData.location.city
-    });
-    console.log('🔍 User Agent:', userAgent.substring(0, 100) + '...');
-    
     const isBrave = clientBrowser === 'Brave' || 
                     loginTrackingService.isBraveBrowser(trackingData.browser.name, userAgent);
     const isMicrosoft = loginTrackingService.isMicrosoftBrowser(trackingData.browser.name, userAgent);
     const isChrome = !isBrave && !isMicrosoft && 
                      loginTrackingService.isChromeBrowser(trackingData.browser.name, userAgent);
     
-    
     if (clientBrowser === 'Brave' && trackingData.browser.name === 'Chrome') {
       trackingData.browser.name = 'Brave';
       trackingData.browser.fullString = trackingData.browser.fullString.replace('Chrome', 'Brave');
     }
     
-    console.log('🔍 Browser Detection:', {
-      clientBrowser,
-      serverDetected: trackingData.browser.name,
-      finalDecision: { isChrome, isMicrosoft, isBrave }
-    });
-    
     const mobileAccessCheck = loginTrackingService.checkMobileAccess(trackingData.device, user);
-    
-    // MOBILE DEVICE - Check time 
     
     if (!mobileAccessCheck.allowed) {
       console.log('❌ Mobile access denied - outside allowed hours');
@@ -197,7 +171,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    
     if (isBrave) {
       console.log('✅ Brave browser detected - No OTP required');
       
@@ -334,7 +307,6 @@ exports.login = async (req, res) => {
       }
     }
 
-   
     console.log('✅ Other browser - No OTP required');
     
     user.addLoginHistory({
@@ -379,7 +351,6 @@ exports.login = async (req, res) => {
   }
 };
 
-// Other functions remain the same...
 exports.verifyBrowserOTP = async (req, res) => {
   try {
     const { userId, otp } = req.body;

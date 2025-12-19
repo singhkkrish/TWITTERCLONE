@@ -132,6 +132,15 @@ export const translations = {
     invalidOTP: "Invalid OTP",
     otpExpired: "OTP expired",
     languageChanged: "Language changed successfully",
+    languageVerification: "Language Verification:",
+    checkYourEmail: "OTP sent to your email! Check your inbox.",
+    failedToChangeLanguage: "Failed to change language",
+    failedToSendOTP: "Failed to send OTP",
+    failedToResendOTP: "Failed to resend OTP",
+    pleaseEnterValidOTP: "Please enter a valid 6-digit OTP",
+    otpSentToEmail: "OTP sent to your email address",
+    enterSixDigitOTPCode: "Enter the 6-digit OTP code from your email",
+    
 
     // Languages
     english: "English",

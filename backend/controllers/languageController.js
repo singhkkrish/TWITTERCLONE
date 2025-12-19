@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const twilio = require('twilio');
 
 const twilioClient = twilio(
@@ -7,17 +7,8 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-});
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -33,29 +24,33 @@ const sendLanguageOTPEmail = async (email, name, otp, language) => {
     fr: 'French'
   };
 
-  const mailOptions = {
-    from: process.env.EMAIL_FROM,
-    to: email,
-    subject: 'Language Change Verification - OTP',
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #1DA1F2;">Language Change Verification</h2>
-        <p>Hello <strong>${name}</strong>,</p>
-        <p>You requested to change your language to <strong>${languageNames[language]}</strong>.</p>
-        <p>Please use the following OTP to verify:</p>
-        <div style="background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; border-radius: 8px;">
-          ${otp}
-        </div>
-        <p>This OTP will expire in <strong>10 minutes</strong>.</p>
-        <p>If you didn't request this change, please ignore this email.</p>
-        <br>
-        <p style="color: #666;">Best regards,<br>Twitter Clone Team</p>
-      </div>
-    `
-  };
-
   try {
-    await transporter.sendMail(mailOptions);
+    const { data, error } = await resend.emails.send({
+      from: 'Twitter Clone <onboarding@resend.dev>',
+      to: [email],
+      subject: 'Language Change Verification - OTP',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #1DA1F2;">Language Change Verification</h2>
+          <p>Hello <strong>${name}</strong>,</p>
+          <p>You requested to change your language to <strong>${languageNames[language]}</strong>.</p>
+          <p>Please use the following OTP to verify:</p>
+          <div style="background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; border-radius: 8px;">
+            ${otp}
+          </div>
+          <p>This OTP will expire in <strong>10 minutes</strong>.</p>
+          <p>If you didn't request this change, please ignore this email.</p>
+          <br>
+          <p style="color: #666;">Best regards,<br>Twitter Clone Team</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      console.error('❌ Resend error:', error);
+      throw error;
+    }
+
     console.log('✅ Language OTP email sent successfully');
   } catch (error) {
     console.error('❌ Error sending language OTP email:', error);
@@ -126,9 +121,8 @@ exports.requestLanguageChange = async (req, res) => {
       });
     }
 
-    // Generate OTP
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     console.log('🔢 Generated OTP:', otp);
 
@@ -171,7 +165,7 @@ exports.requestLanguageChange = async (req, res) => {
       }
     }
 
-    // Other languages (Spanish, Hindi, Portuguese, Chinese) require PHONE OTP
+    // Other languages require PHONE OTP
     if (!phoneNumber) {
       return res.status(400).json({ 
         success: false,
@@ -180,7 +174,6 @@ exports.requestLanguageChange = async (req, res) => {
       });
     }
 
-    // Validate phone number format (international format with +)
     const phoneRegex = /^\+[1-9]\d{1,14}$/;
     if (!phoneRegex.test(phoneNumber)) {
       return res.status(400).json({ 
@@ -192,7 +185,6 @@ exports.requestLanguageChange = async (req, res) => {
     console.log('📱 Sending SMS OTP via Twilio...');
     console.log('📞 Phone number:', phoneNumber);
 
-    // Send SMS OTP using Twilio
     try {
       const message = await twilioClient.messages.create({
         body: `Your Twitter Clone language change OTP is: ${otp}. Valid for 10 minutes.`,
@@ -203,7 +195,6 @@ exports.requestLanguageChange = async (req, res) => {
       console.log('✅ SMS sent successfully');
       console.log('📨 Message SID:', message.sid);
 
-      // Save phone number and OTP
       user.phoneNumber = phoneNumber;
       user.languageOTP = {
         code: otp,
@@ -212,7 +203,6 @@ exports.requestLanguageChange = async (req, res) => {
       };
       await user.save();
 
-      // Mask phone number for response
       const maskedPhone = phoneNumber.replace(/(\+\d{1,3})\d+(\d{4})/, '$1******$2');
 
       return res.json({
@@ -240,7 +230,6 @@ exports.requestLanguageChange = async (req, res) => {
   }
 };
 
-// Verify OTP and change language
 exports.verifyLanguageOTP = async (req, res) => {
   try {
     const { otp, language } = req.body;
@@ -270,7 +259,6 @@ exports.verifyLanguageOTP = async (req, res) => {
       });
     }
 
-    // Check if OTP expired
     if (new Date() > user.languageOTP.expiresAt) {
       user.languageOTP = undefined;
       await user.save();
@@ -280,7 +268,6 @@ exports.verifyLanguageOTP = async (req, res) => {
       });
     }
 
-    // Verify OTP
     if (user.languageOTP.code !== otp) {
       return res.status(400).json({ 
         success: false,
@@ -290,10 +277,8 @@ exports.verifyLanguageOTP = async (req, res) => {
 
     console.log('✅ OTP verified successfully');
 
-    // Update language
     user.preferredLanguage = language;
     
-    // Mark phone as verified if phone OTP was used
     if (user.languageOTP.type === 'phone') {
       user.isPhoneVerified = true;
       console.log('✅ Phone marked as verified');
@@ -319,7 +304,6 @@ exports.verifyLanguageOTP = async (req, res) => {
   }
 };
 
-// Add/Update phone number
 exports.updatePhoneNumber = async (req, res) => {
   try {
     const { phoneNumber } = req.body;
@@ -327,7 +311,6 @@ exports.updatePhoneNumber = async (req, res) => {
 
     console.log('📱 Updating phone number:', phoneNumber);
 
-    // Validate phone number format (international format)
     const phoneRegex = /^\+[1-9]\d{1,14}$/;
     if (!phoneRegex.test(phoneNumber)) {
       return res.status(400).json({ 
@@ -345,7 +328,7 @@ exports.updatePhoneNumber = async (req, res) => {
     }
 
     user.phoneNumber = phoneNumber;
-    user.isPhoneVerified = false; // Reset verification status
+    user.isPhoneVerified = false;
     await user.save();
 
     console.log('✅ Phone number updated');
