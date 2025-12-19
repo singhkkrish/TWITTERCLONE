@@ -14,7 +14,9 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-  }
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
 });
 
 const generateOTP = () => {
@@ -52,7 +54,13 @@ const sendLanguageOTPEmail = async (email, name, otp, language) => {
     `
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Language OTP email sent successfully');
+  } catch (error) {
+    console.error('❌ Error sending language OTP email:', error);
+    throw error;
+  }
 };
 
 exports.getCurrentLanguage = async (req, res) => {
@@ -158,7 +166,7 @@ exports.requestLanguageChange = async (req, res) => {
         console.error('❌ Email error:', emailError);
         return res.status(500).json({ 
           success: false,
-          message: 'Failed to send email OTP' 
+          message: 'Failed to send email OTP: ' + emailError.message
         });
       }
     }
@@ -227,7 +235,7 @@ exports.requestLanguageChange = async (req, res) => {
     console.error('💥 Request language change error:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Server error' 
+      message: 'Server error: ' + error.message
     });
   }
 };
@@ -306,7 +314,7 @@ exports.verifyLanguageOTP = async (req, res) => {
     console.error('💥 Verify language OTP error:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Server error' 
+      message: 'Server error: ' + error.message
     });
   }
 };
@@ -352,7 +360,7 @@ exports.updatePhoneNumber = async (req, res) => {
     console.error('💥 Update phone number error:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Server error' 
+      message: 'Server error: ' + error.message
     });
   }
 };

@@ -6,19 +6,22 @@ if (!nodemailer || typeof nodemailer.createTransport !== 'function') {
 }
 
 const transporter = nodemailer.createTransport({
-  // host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  host: 'smtp-relay.brevo.com' ,
+  host: 'smtp-relay.brevo.com',
   port: parseInt(process.env.EMAIL_PORT) || 587,
   secure: false, 
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  // Add connection timeout
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000,   // 10 seconds
 });
 
+// Make verification optional and non-blocking
 transporter.verify(function (error, success) {
   if (error) {
-    console.log('Email transporter verification failed:', error);
+    console.log('⚠️ Email transporter verification failed (will retry on send):', error.message);
   } else {
     console.log('✅ Email server is ready to send messages');
   }
@@ -78,12 +81,13 @@ const sendOTPEmail = async (email, otp, userName) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log('OTP email sent successfully to:', email);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ OTP email sent successfully to:', email);
+    console.log('📧 Message ID:', info.messageId);
     return true;
   } catch (error) {
-    console.error('Error sending OTP email:', error);
-    throw new Error('Failed to send OTP email');
+    console.error('❌ Error sending OTP email:', error);
+    throw new Error('Failed to send OTP email: ' + error.message);
   }
 };
 
@@ -152,12 +156,13 @@ const sendPasswordResetEmail = async (email, userName, generatedPassword, resetT
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log('Password reset email sent successfully to:', email);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Password reset email sent successfully to:', email);
+    console.log('📧 Message ID:', info.messageId);
     return true;
   } catch (error) {
-    console.error('Error sending password reset email:', error);
-    throw new Error('Failed to send password reset email');
+    console.error('❌ Error sending password reset email:', error);
+    throw new Error('Failed to send password reset email: ' + error.message);
   }
 };
 
@@ -274,12 +279,13 @@ const sendSubscriptionInvoice = async (email, userName, subscriptionData, paymen
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log('Subscription invoice sent successfully to:', email);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Subscription invoice sent successfully to:', email);
+    console.log('📧 Message ID:', info.messageId);
     return true;
   } catch (error) {
-    console.error('Error sending subscription invoice:', error);
-    throw new Error('Failed to send subscription invoice');
+    console.error('❌ Error sending subscription invoice:', error);
+    throw new Error('Failed to send subscription invoice: ' + error.message);
   }
 };
 

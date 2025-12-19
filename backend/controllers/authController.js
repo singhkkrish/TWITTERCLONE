@@ -11,7 +11,9 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-  }
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
 });
 
 const generateToken = (userId) => {
@@ -51,7 +53,13 @@ const sendBrowserOTPEmail = async (email, name, otp, browserName, ipAddress) => 
     `
   };
   
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Browser OTP email sent successfully');
+  } catch (error) {
+    console.error('❌ Error sending browser OTP email:', error);
+    throw error;
+  }
 };
 
 // REGISTER
