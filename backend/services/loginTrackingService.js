@@ -130,7 +130,7 @@ function checkMobileAccess(deviceType, user) {
   }
   
   const startHour = user.securitySettings?.mobileAccessStartHour || 10;
-  const endHour = user.securitySettings?.mobileAccessEndHour || 13;
+  const endHour = user.securitySettings?.mobileAccessEndHour || 14;
   
   if (isWithinMobileAccessHours(startHour, endHour)) {
     return { allowed: true };
