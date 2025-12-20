@@ -41,7 +41,7 @@ const isPaymentTimeAllowed = () => {
   });
   const [hours, minutes] = istTimeString.split(':').map(Number);
   console.log(`Current IST time: ${hours}:${minutes.toString().padStart(2, '0')}`);
-  return hours === 11;
+  return hours === 10;
 };
 
 const getNextAvailableTime = () => {
