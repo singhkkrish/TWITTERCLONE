@@ -98,8 +98,8 @@ function isMobileDevice(deviceType) {
   return deviceType === 'mobile';
 }
 
-// UPDATED: Mobile access from 10 AM to 2 PM IST (default: 10-14)
-function isWithinMobileAccessHours(startHour = 10, endHour = 14) {
+// Mobile access from 10 AM to 1 PM IST (default: 10-13)
+function isWithinMobileAccessHours(startHour = 10, endHour = 13) {
   const now = new Date();
   
   // Use toLocaleString with Asia/Kolkata timezone to get IST time
@@ -129,9 +129,9 @@ function checkMobileAccess(deviceType, user) {
     return { allowed: true };
   }
   
-  // UPDATED: Default end hour is now 14 (2 PM IST) instead of 13 (1 PM IST)
+  // Default: 10 AM - 1 PM IST (endHour = 13)
   const startHour = user.securitySettings?.mobileAccessStartHour || 10;
-  const endHour = user.securitySettings?.mobileAccessEndHour || 14;
+  const endHour = user.securitySettings?.mobileAccessEndHour || 13;
   
   if (isWithinMobileAccessHours(startHour, endHour)) {
     return { allowed: true };

@@ -174,7 +174,7 @@ const userSchema = new mongoose.Schema({
     },
     mobileAccessEndHour: {
       type: Number,
-      default: 14
+      default: 13
     }
   }
 }, {
