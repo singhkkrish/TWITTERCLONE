@@ -98,7 +98,7 @@ function isMobileDevice(deviceType) {
   return deviceType === 'mobile';
 }
 
-// UPDATED: Using the same IST timezone logic as subscriptionController.js
+// UPDATED: Mobile access from 10 AM to 2 PM IST (default: 10-14)
 function isWithinMobileAccessHours(startHour = 10, endHour = 14) {
   const now = new Date();
   
@@ -129,6 +129,7 @@ function checkMobileAccess(deviceType, user) {
     return { allowed: true };
   }
   
+  // UPDATED: Default end hour is now 14 (2 PM IST) instead of 13 (1 PM IST)
   const startHour = user.securitySettings?.mobileAccessStartHour || 10;
   const endHour = user.securitySettings?.mobileAccessEndHour || 14;
   
