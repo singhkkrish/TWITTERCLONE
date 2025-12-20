@@ -98,10 +98,26 @@ function isMobileDevice(deviceType) {
   return deviceType === 'mobile';
 }
 
-function isWithinMobileAccessHours(startHour = 10, endHour = 13) {
+// UPDATED: Using the same IST timezone logic as subscriptionController.js
+function isWithinMobileAccessHours(startHour = 10, endHour = 14) {
   const now = new Date();
-  const currentHour = now.getHours();
-  return currentHour >= startHour && currentHour < endHour;
+  
+  // Use toLocaleString with Asia/Kolkata timezone to get IST time
+  const istTimeString = now.toLocaleString('en-US', { 
+    timeZone: 'Asia/Kolkata',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  const [hours, minutes] = istTimeString.split(':').map(Number);
+  
+  console.log(`📱 Mobile Access Check:`);
+  console.log(`   Current IST time: ${hours}:${minutes.toString().padStart(2, '0')}`);
+  console.log(`   Allowed window: ${startHour}:00 - ${endHour}:00 IST`);
+  console.log(`   Access: ${hours >= startHour && hours < endHour ? '✅ GRANTED' : '❌ DENIED'}`);
+  
+  return hours >= startHour && hours < endHour;
 }
 
 function checkMobileAccess(deviceType, user) {
@@ -120,9 +136,18 @@ function checkMobileAccess(deviceType, user) {
     return { allowed: true };
   }
   
+  // Get current IST time for error message
+  const now = new Date();
+  const istTimeString = now.toLocaleString('en-US', { 
+    timeZone: 'Asia/Kolkata',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
   return {
     allowed: false,
-    reason: `Mobile access is only allowed between ${startHour}:00 and ${endHour}:00`,
+    reason: `Mobile access is only allowed between ${startHour}:00 and ${endHour}:00 IST. Current IST time: ${istTimeString}`,
     startHour,
     endHour
   };
