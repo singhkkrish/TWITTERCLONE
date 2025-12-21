@@ -76,29 +76,101 @@ function generateDeviceFingerprint(userAgent, ipAddress) {
   return crypto.createHash('sha256').update(data).digest('hex');
 }
 
-// UPDATED: Chrome detection now works for BOTH desktop AND mobile Chrome
-function isChromeBrowser(browserName) {
-  const chromeBrowsers = ['chrome', 'chromium', 'chrome webview', 'chrome headless', 'chrome mobile', 'chrome mobile webview'];
-  const isChromiumBased = chromeBrowsers.includes(browserName?.toLowerCase());
-  const excludedBrowsers = ['brave', 'edge', 'opera', 'vivaldi', 'samsung browser'];
-  const isExcluded = excludedBrowsers.includes(browserName?.toLowerCase());
+// ENHANCED: Brave browser detection with User-Agent check
+function isBraveBrowser(browserName, userAgent = '') {
+  const browserNameLower = (browserName || '').toLowerCase();
+  const userAgentLower = (userAgent || '').toLowerCase();
   
-  console.log(`🔍 Chrome Detection:`);
-  console.log(`   Browser: ${browserName}`);
-  console.log(`   Is Chromium-based: ${isChromiumBased}`);
-  console.log(`   Is Excluded: ${isExcluded}`);
-  console.log(`   Final Result: ${isChromiumBased && !isExcluded ? '✅ IS CHROME' : '❌ NOT CHROME'}`);
+  // Check browser name
+  const isBraveByName = browserNameLower === 'brave' || browserNameLower.includes('brave');
   
-  return isChromiumBased && !isExcluded;
+  // Check User-Agent string
+  const isBraveByUA = userAgentLower.includes('brave');
+  
+  const isBrave = isBraveByName || isBraveByUA;
+  
+  console.log(`🦁 Brave Detection:`);
+  console.log(`   Browser Name: ${browserName}`);
+  console.log(`   By Name: ${isBraveByName ? '✅' : '❌'}`);
+  console.log(`   By User-Agent: ${isBraveByUA ? '✅' : '❌'}`);
+  console.log(`   Final: ${isBrave ? '✅ IS BRAVE' : '❌ NOT BRAVE'}`);
+  
+  return isBrave;
 }
 
-function isMicrosoftBrowser(browserName) {
+// ENHANCED: Microsoft browser detection with User-Agent check
+function isMicrosoftBrowser(browserName, userAgent = '') {
+  const browserNameLower = (browserName || '').toLowerCase();
+  const userAgentLower = (userAgent || '').toLowerCase();
+  
   const microsoftBrowsers = ['edge', 'ie', 'internet explorer'];
-  return microsoftBrowsers.includes(browserName?.toLowerCase());
+  const isMSByName = microsoftBrowsers.some(ms => browserNameLower.includes(ms));
+  
+  // Check User-Agent for Edge
+  const isMSByUA = userAgentLower.includes('edg/') || userAgentLower.includes('edge/');
+  
+  const isMS = isMSByName || isMSByUA;
+  
+  console.log(`🔷 Microsoft Browser Detection:`);
+  console.log(`   Browser Name: ${browserName}`);
+  console.log(`   By Name: ${isMSByName ? '✅' : '❌'}`);
+  console.log(`   By User-Agent: ${isMSByUA ? '✅' : '❌'}`);
+  console.log(`   Final: ${isMS ? '✅ IS MICROSOFT' : '❌ NOT MICROSOFT'}`);
+  
+  return isMS;
 }
 
-function isBraveBrowser(browserName) {
-  return browserName?.toLowerCase() === 'brave';
+// ENHANCED: Chrome detection with dual method
+function isChromeBrowser(browserName, userAgent = '') {
+  const chromeBrowsers = [
+    'chrome', 
+    'chromium', 
+    'chrome webview', 
+    'chrome headless', 
+    'chrome mobile',
+    'chrome mobile webview'
+  ];
+  
+  const excludedBrowsers = [
+    'brave', 
+    'edge', 
+    'opera', 
+    'vivaldi',
+    'samsung browser',
+    'firefox',
+    'safari'
+  ];
+  
+  const browserNameLower = (browserName || '').toLowerCase();
+  const userAgentLower = (userAgent || '').toLowerCase();
+  
+  // Method 1: Check browser name
+  const isChromiumBased = chromeBrowsers.some(chrome => browserNameLower.includes(chrome));
+  const isExcluded = excludedBrowsers.some(excluded => browserNameLower.includes(excluded));
+  const chromeByName = isChromiumBased && !isExcluded;
+  
+  // Method 2: Direct User-Agent string check
+  const userAgentHasChrome = userAgentLower.includes('chrome') && 
+                             !userAgentLower.includes('edg/') && 
+                             !userAgentLower.includes('edge') &&
+                             !userAgentLower.includes('opr/') &&
+                             !userAgentLower.includes('opera') &&
+                             !userAgentLower.includes('brave') &&
+                             !userAgentLower.includes('samsungbrowser') &&
+                             !userAgentLower.includes('firefox') &&
+                             // Safari can mention Chrome in compatibility
+                             !(userAgentLower.includes('safari') && !userAgentLower.includes('chrome/'));
+  
+  const isChrome = chromeByName || userAgentHasChrome;
+  
+  console.log(`🔍 Chrome Detection (Enhanced):`);
+  console.log(`   Browser Name: ${browserName}`);
+  console.log(`   User-Agent: ${userAgent.substring(0, 80)}...`);
+  console.log(`   Method 1 (Name): ${chromeByName ? '✅ Chrome' : '❌ Not Chrome'}`);
+  console.log(`   Method 2 (UA): ${userAgentHasChrome ? '✅ Chrome' : '❌ Not Chrome'}`);
+  console.log(`   Final Result: ${isChrome ? '✅ IS CHROME - OTP REQUIRED' : '❌ NOT CHROME'}`);
+  
+  return isChrome;
 }
 
 function isMobileDevice(deviceType) {
