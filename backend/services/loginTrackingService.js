@@ -76,11 +76,18 @@ function generateDeviceFingerprint(userAgent, ipAddress) {
   return crypto.createHash('sha256').update(data).digest('hex');
 }
 
+// UPDATED: Chrome detection now works for BOTH desktop AND mobile Chrome
 function isChromeBrowser(browserName) {
-  const chromeBrowsers = ['chrome', 'chromium', 'chrome webview', 'chrome headless'];
+  const chromeBrowsers = ['chrome', 'chromium', 'chrome webview', 'chrome headless', 'chrome mobile', 'chrome mobile webview'];
   const isChromiumBased = chromeBrowsers.includes(browserName?.toLowerCase());
-  const excludedBrowsers = ['brave', 'edge', 'opera', 'vivaldi'];
+  const excludedBrowsers = ['brave', 'edge', 'opera', 'vivaldi', 'samsung browser'];
   const isExcluded = excludedBrowsers.includes(browserName?.toLowerCase());
+  
+  console.log(`🔍 Chrome Detection:`);
+  console.log(`   Browser: ${browserName}`);
+  console.log(`   Is Chromium-based: ${isChromiumBased}`);
+  console.log(`   Is Excluded: ${isExcluded}`);
+  console.log(`   Final Result: ${isChromiumBased && !isExcluded ? '✅ IS CHROME' : '❌ NOT CHROME'}`);
   
   return isChromiumBased && !isExcluded;
 }
