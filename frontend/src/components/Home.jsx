@@ -23,17 +23,18 @@ const Home = () => {
       
       const { data } = await tweetAPI.getAll();
       
-      // IMPROVED: Check for new tweets more reliably
+      // Check for new tweets when polling (on Home page only)
+      // NOTE: Global watcher also checks, but this provides immediate feedback on Home
       if (isPolling && previousTweetsRef.current.length > 0) {
         const previousIds = new Set(previousTweetsRef.current.map(t => t._id));
         const newTweets = data.filter(tweet => !previousIds.has(tweet._id));
         
         if (newTweets.length > 0) {
-          console.log(`🆕 Found ${newTweets.length} new tweets`);
+          console.log(`🏠 Home: Found ${newTweets.length} new tweets`);
           
           // Check each new tweet immediately
           newTweets.forEach(tweet => {
-            console.log('🔍 Checking new tweet:', tweet.content);
+            console.log('🔍 Home checking:', tweet.content.substring(0, 50));
             
             // Don't notify for own tweets
             const tweetAuthorId = tweet.author?._id || tweet.author?.id;
@@ -43,11 +44,13 @@ const Home = () => {
               console.log('👤 Own tweet, skipping notification');
             } else {
               // Check notification immediately
+              // NOTE: This may duplicate global watcher, but NotificationContext
+              // prevents duplicate notifications via notifiedTweets Set
               checkAndNotify(tweet);
             }
           });
         } else {
-          console.log('📭 No new tweets found');
+          console.log('📭 Home: No new tweets found');
         }
       }
       
@@ -63,21 +66,30 @@ const Home = () => {
   };
 
   useEffect(() => {
+    console.log('🏠 Home component mounted');
+    
     // Initial load
     fetchTweets(false);
     
-    // IMPROVED: Poll more frequently for better responsiveness
+    // Poll more frequently for better responsiveness on Home page
+    // NOTE: This is IN ADDITION to global watcher
+    // Home page gets faster updates (every 10s)
+    // Other pages rely on global watcher (also every 10s)
     const interval = setInterval(() => {
       const timeSinceLastCheck = Date.now() - lastCheckTimeRef.current;
-      console.log(`📡 Polling for new tweets... (${Math.round(timeSinceLastCheck / 1000)}s since last check)`);
+      console.log(`📡 Home polling... (${Math.round(timeSinceLastCheck / 1000)}s since last check)`);
       fetchTweets(true);
-    }, 10000); // Changed from 15s to 10s
+    }, 10000); // 10 seconds
     
-    return () => clearInterval(interval);
+    return () => {
+      console.log('🏠 Home component unmounted - stopping Home polling');
+      console.log('🌐 Note: Global watcher continues on other pages!');
+      clearInterval(interval);
+    };
   }, [currentUser]); // Add currentUser as dependency
 
   const handleTweetCreated = (newTweet) => {
-    console.log('✨ New tweet created locally:', newTweet);
+    console.log('✨ New tweet created locally:', newTweet.content.substring(0, 50));
     
     // Add to state immediately
     const updatedTweets = [newTweet, ...tweets];
@@ -90,6 +102,7 @@ const Home = () => {
   };
 
   const handleTweetUpdate = (updatedTweet) => {
+    console.log('📝 Tweet updated:', updatedTweet._id);
     setTweets(tweets.map(tweet => 
       tweet._id === updatedTweet._id ? updatedTweet : tweet
     ));
@@ -99,6 +112,7 @@ const Home = () => {
   };
 
   const handleTweetDelete = (tweetId) => {
+    console.log('🗑️ Tweet deleted:', tweetId);
     const filtered = tweets.filter(tweet => tweet._id !== tweetId);
     setTweets(filtered);
     previousTweetsRef.current = filtered;
@@ -128,7 +142,7 @@ const Home = () => {
         {/* Debug indicator */}
         {notificationsEnabled && (
           <p className="text-xs text-gray-500 mt-1">
-            🔔 Notifications active - checking every 10 seconds
+            🔔 Notifications active globally (works on all pages)
           </p>
         )}
       </div>
