@@ -118,7 +118,7 @@ Supported languages:
 - Express.js
 - MongoDB with Mongoose
 - JWT Authentication
-- Nodemailer (Email)
+- Mailgun (Email)
 - Twilio (SMS)
 - Razorpay (Payments)
 
